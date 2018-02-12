@@ -1,5 +1,5 @@
   #Load the data in RStudio
-df <- read.csv("C:/Irene/Springboard Study Folder/Exercises/refine_original.csv")
+df <- read.csv("C:/Irene/Springboard Study Folder/Exercises/refine_original.csv", header = TRUE)
 
 #Clean up brand names: change all company names to lowercase; removed all spaces and spelling mistakes. 
 library(tidyr)
