@@ -1,6 +1,9 @@
 #Load the data in RStudio
 df1 <- read.csv("C:/Irene/Springboard Study Folder/Exercises/titanic_original.csv", header = TRUE)
 
+#Noticed that the last row of the dataframe contains all missing values. Remove that row. 
+df1 <- df1[-nrow(df1), ]
+
 library(tidyr)
 library(dplyr)
 library(stringr)
