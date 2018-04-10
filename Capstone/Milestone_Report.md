@@ -114,7 +114,6 @@ dogs$stage_at_outcome[dogs$age_at_outcome >= 6] <- "senior"
 
 b.  explore the relationship between dog stage and their outcome.
 
-<!-- -->
 
     ##                  
     ##                        adult       baby     senior
