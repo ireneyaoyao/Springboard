@@ -26,25 +26,21 @@ By roughly looking at the data, I'm interested to explore whether the different 
 
 7.  Fill up the missing values in size column
 
-<!-- -->
+  a. make size equals Puppy or Kitten if animal is less than 1 year old upon arrival at the shelter
 
--   make size equals Puppy or Kitten if animal is less than 1 year old upon arrival at the shelter
+  b. categorize the breed into different size classes and replace the missing values based on the breed
 
--   categorize the breed into different size classes and replace the missing values based on the breed
+8.  Remove the number 0 from days\_in\_shelter column if the animal is still in shelter, replacing it with NA
 
-<!-- -->
+9.  Replace missing values in Outcome type, Outcome subtype, and Outcome condition with "UNKNOWN"
 
-1.  Remove the number 0 from days\_in\_shelter column if the animal is still in shelter, replacing it with NA
+10.  Replace missing values in Outcome Jurisdiction, Zip Code & Location with NA/UNKNOWN
 
-2.  Replace missing values in Outcome type, Outcome subtype, and Outcome condition with "UNKNOWN"
+11.  Replace missing values in name column, default to "Nameless"
 
-3.  Replace missing values in Outcome Jurisdiction, Zip Code & Location with NA/UNKNOWN
+12.  Add an age\_at\_outcome column & an age\_at\_intake column
 
-4.  Replace missing values in name column, default to "Nameless"
-
-5.  Add an age\_at\_outcome column & an age\_at\_intake column
-
-6.  Remove the Count column, which is redundant for the analysis
+13.  Remove the Count column, which is redundant for the analysis
 
 ### **Statistical Analysis**
 
