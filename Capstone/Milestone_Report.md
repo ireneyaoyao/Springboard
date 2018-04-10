@@ -68,7 +68,7 @@ Before I separate the data into DOG and CAT subsets, I'm interested to see how c
 
 Observation: Most of the dogs and cats are taken into the shelter as stray animals. Cats have a higher adoption rate than dogs, and most of the dogs are returned to the owners. It also appears that cats are more likely to be transferred to other shelters than dogs.
 
-#### **Deep Dive into the Dog Category **
+#### **Deep Dive into the Dog Category**
 
 ##### **1. Subset the data to include only dogs**
 
@@ -184,7 +184,7 @@ Median and Inner Quartile Range
 
     ## [1] "21 (13.00, 37.00)"
 
-##### **6. Adoption vs. Sex**
+##### **7. Adoption vs. Sex**
 
 Due to state spay and neuter law, all animals that are adopted are either spayed or neutered, but is there a difference in the adoption rate for male and female dogs?
 
@@ -192,7 +192,7 @@ Due to state spay and neuter law, all animals that are adopted are either spayed
 
 Observation: There is an equal preference in male and female when it comes to adoption.
 
-##### **6. Adoption vs. Breed**
+##### **8. Adoption vs. Breed**
 
 The breed variable in the raw data contains 644 levels. To simplify the analysis, I created two columns, one to indicate whether the breed is a mix or not, and the other extracts only the first breed if the dog is a mix.
 
