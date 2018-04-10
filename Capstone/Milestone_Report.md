@@ -25,10 +25,8 @@ By roughly looking at the data, I'm interested to explore whether the different 
 6.  Clean up the DOB column where DOB is later than the intake date
 
 7.  Fill up the missing values in size column
-
-  a. make size equals Puppy or Kitten if animal is less than 1 year old upon arrival at the shelter
-
-  b. categorize the breed into different size classes and replace the missing values based on the breed
+-   make size equals Puppy or Kitten if animal is less than 1 year old upon arrival at the shelter
+-   categorize the breed into different size classes and replace the missing values based on the breed
 
 8.  Remove the number 0 from days\_in\_shelter column if the animal is still in shelter, replacing it with NA
 
