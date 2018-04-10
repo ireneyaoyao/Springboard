@@ -28,9 +28,9 @@ By roughly looking at the data, I'm interested to explore whether the different 
 
 <!-- -->
 
-1.  make size equals Puppy or Kitten if animal is less than 1 year old upon arrival at the shelter
+-   make size equals Puppy or Kitten if animal is less than 1 year old upon arrival at the shelter
 
-2.  categorize the breed into different size classes and replace the missing values based on the breed
+-   categorize the breed into different size classes and replace the missing values based on the breed
 
 <!-- -->
 
@@ -110,7 +110,7 @@ At the same time, We also noticed that even though some of the animals came in a
 
 Next, let's find the relationship between animal age and their outcome.
 
-1.  add a column "stage\_at\_outcome" to indicate whether a pet is a baby, adult, or senior.
+a.  add a column "stage\_at\_outcome" to indicate whether a pet is a baby, adult, or senior.
 
 ``` r
 dogs$stage_at_outcome[dogs$age_at_outcome < 1] <- "baby"
@@ -118,7 +118,7 @@ dogs$stage_at_outcome[dogs$age_at_outcome >= 1 & dogs$age_at_outcome < 6] <- "ad
 dogs$stage_at_outcome[dogs$age_at_outcome >= 6] <- "senior"
 ```
 
-1.  explore the relationship between dog stage and their outcome.
+b.  explore the relationship between dog stage and their outcome.
 
 <!-- -->
 
