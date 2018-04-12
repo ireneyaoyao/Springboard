@@ -177,7 +177,7 @@ ggplot(outcome, aes(x=type, y=animal_count, fill=outcome_type)) +
 Observation: Most of the dogs and cats are taken into the shelter as stray animals. Cats have a higher adoption rate than dogs, and most of the dogs are returned to the owners. It also appears that cats are more likely to be transferred to other shelters than dogs. 
 
 
-#### **Deep Dive into the Dog Category **
+#### **Deep Dive into the Dog Category**
 ##### **1. Subset the data to include only dogs**
 ```{r}
 dogs <- filter(df_clean, type=="DOG")
