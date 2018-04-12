@@ -1,0 +1,416 @@
+---
+title: "Milestone Report"
+author: "Irene Yao"
+date: "April 9, 2018"
+output:
+  md_document:
+    variant: markdown_github
+---
+### **Introduction**
+
+According to ASPCA, approximately 6.5 million companion animals enter U.S. animal shelters nationwide every year. Among those animals, approximately 1.5 million are euthanized for different reasons. Animal rescue centers are currently facing challenges such as overpopulation, unbalanced distribution and insufficent funding support. I hope this analysis could provide insights into the factors and characteristics of the animals that affect the outcomes and help rescue centers to predict the probability of adoption and make best use of their resources for the desirable outcome. 
+
+### **Data Source** 
+For this analysis, I will use the [animal intake and outcome dataset](https://data.sonomacounty.ca.gov/Government/Animal-Shelter-Intake-and-Outcome/924a-vesw/data) found on Sonoma County website. The data can be downloaded as a .csv file for further cleanup and data wrangling.   
+
+Variables included in the dataset: animal type, breed, size, sex, age, days in the shelter, location, etc. 
+Definition of Terms: <http://sonomacounty.ca.gov/Health/Animal-Services/Statistics-Definitions/>
+
+By roughly looking at the data, I'm interested to explore whether the different variables have any influence on the animal outcome and if any of them are statistically significant in predicting the outcome. 
+
+### **Data Wrangling**
+```{r message=FALSE, echo=FALSE}
+## read csv file
+df<-read.csv("D:\\Irene\\Springboard Study Folder\\Capstone Project\\Datasets\\Animal_Shelter.csv", header=TRUE)
+```
+
+```{r message=FALSE, echo=FALSE}
+## load R libraries
+library(tidyr)
+library(dplyr)
+library(lubridate)
+```
+
+1. Column names are separated by "." and include both uppercase and lowercase. I cleaned up column names by replacing \. with \_ and change all names to lowercase
+```{r message=FALSE, echo=FALSE}
+names(df) <- gsub(x = names(df), pattern = "\\.", replacement = "_") 
+names(df) <- tolower(names(df))
+```
+
+2. For this analysis, I'm only interested in cats and dogs, so I subset the data to include only CAT and DOG
+```{r message=FALSE, echo=FALSE}
+df <- filter(df, type=="DOG" | type=="CAT")
+```
+
+3. The sex column has 4 types. Among them, Spayed and Neutered can be translated into Female and Male. A new sex column was created to include only Female and Male.
+```{r message=FALSE, echo=FALSE}
+df$sex_clean <- ifelse(df$sex=="Spayed", "Female", "Male")
+```
+
+4. Change the date columns to Date class using lubridate
+```{r message=FALSE, echo=FALSE}
+df$date_of_birth <- mdy(df$date_of_birth)
+df$intake_date <- mdy(df$intake_date)
+df$outcome_date <- mdy(df$outcome_date)
+```
+
+5. Clean up the DOB column to remove future dates and change missing dates to NA
+```{r message=FALSE, echo=FALSE}
+df$date_of_birth[df$date_of_birth > Sys.Date() & !is.na(df$date_of_birth)] <- NA
+```
+
+6. Clean up the DOB column where DOB is later than the intake date
+```{r message=FALSE, echo=FALSE}
+df$date_of_birth[df$date_of_birth>df$intake_date & !is.na(df$date_of_birth)] <- NA
+```
+
+7. Fill up the missing values in size column
+
+a) make size equals Puppy or Kitten if animal is less than 1 year old upon arrival at the   shelter
+```{r message=FALSE, echo=FALSE}
+df$size[df$type=="CAT" & (df$intake_date-df$date_of_birth < 365) & df$size=="" & !is.na(df$date_of_birth)] <- "KITTN"
+df$size[df$type=="DOG" & (df$intake_date-df$date_of_birth < 365) & df$size=="" & !is.na(df$date_of_birth)] <- "PUPPY"
+```
+
+b) categorize the breed into different size classes and replace the missing values based    on the breed
+```{r message=FALSE, echo=FALSE}
+toy <-c("CHIHUAHUA SH")
+small <- c("BEAGLE", "CHIHUAHUA SH/MIX", "DOMESTIC SH", "PUG")
+med <- c("BASSET HOUND/MIX", "BORDER COLLIE/MIX", "MCNAB")
+large <- c("AMERICAN STAFF/PIT BULL", "GERM SHEPHERD", "GOLDEN RETR", "LABRADOR RETR", "LABRADOR RETR/MIX", "MAREMMA SHEEPDG", "ROTTWEILER/MIX")
+
+df$size[df$breed %in% toy & df$size==""] <- "TOY"
+df$size[df$breed %in% small & df$size==""] <- "SMALL"
+df$size[df$breed %in% med & df$size==""] <- "MED"
+df$size[df$breed %in% large & df$size==""] <- "LARGE"
+```
+
+8. Remove the number 0 from days_in_shelter column if the animal is still in shelter, replacing it with NA
+```{r message=FALSE, echo=FALSE}
+df$days_in_shelter[is.na(df$outcome_date)] <- NA
+```
+
+9. Replace missing values in Outcome type, Outcome subtype, and Outcome condition with "UNKNOWN"
+```{r message=FALSE, echo=FALSE}
+levels(df$outcome_type)[levels(df$outcome_type)==""] <- "UNKNOWN"
+levels(df$outcome_subtype)[levels(df$outcome_subtype)==""] <- "UNKNOWN"
+levels(df$outcome_condition)[levels(df$outcome_condition)==""] <-"UNKNOWN"
+```
+
+10. Replace missing values in Outcome Jurisdiction, Zip Code & Location with NA/UNKNOWN
+```{r message=FALSE, echo=FALSE}
+levels(df$outcome_jurisdiction)[levels(df$outcome_jurisdiction)==""] <- "UNKNOWN"
+df$outcome_zip_code[df$outcome_zip_code==""] <- NA
+df$location[df$location==""] <- NA
+```
+
+11. Replace missing values in name column, default to "Nameless"
+```{r message=FALSE, echo=FALSE}
+levels(df$name)[levels(df$name)==""] <- "Nameless"
+```
+
+12. Add an age_at_outcome column & an age_at_intake column
+```{r message=FALSE, echo=FALSE}
+df$age_at_outcome <- (df$outcome_date-df$date_of_birth)/365
+df$age_at_intake <- (df$intake_date-df$date_of_birth)/365
+```
+
+13. Remove the Count column, which is redundant for the analysis
+```{r message=FALSE, echo=FALSE}
+df_clean <- select(df, -count)
+```
+
+### **Statistical Analysis**
+
+#### **Overview of the Animal Distribution**
+
+##### **1. Load ggplot2**
+```{r}
+library(ggplot2)
+```
+
+##### **2. Number of cats vs. dogs in the shelter**
+Before I start anything, I want to examine the number of cats and dogs in the shelter. 
+
+```{r echo=FALSE, fig.height=2, fig.width=4}
+ggplot(df_clean, aes(type)) +
+  geom_bar(fill = "grey") + 
+  coord_flip() +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()
+        , axis.title.x=element_blank(), axis.title.y=element_blank()) +
+  geom_text(stat="count", aes(label=..count..), hjust=2)
+```
+
+Since the dog category has a larger sample size, I will use the dog category for my analysis. 
+
+##### **3. Intake & Outcome percentage by animal type**
+Before I separate the data into DOG and CAT subsets, I'm interested to see how cats and dogs are different in terms of intake and outcome type. 
+
+```{r echo=FALSE, fig.height=3, fig.width=6}
+intake <- df_clean %>% 
+  group_by(type, intake_type) %>% 
+  summarise(animal_count = n())
+
+ggplot(intake, aes(x=type, y=animal_count, fill=intake_type)) +
+  geom_bar(stat="identity", position = "fill") +
+  coord_flip() +
+  labs(y = "Percentage of Animals", 
+       x = "",
+       title = "Intakes: Dogs & Cats") +
+  scale_fill_brewer(palette="Spectral")
+```
+
+```{r echo=FALSE, fig.height=3, fig.width=6}
+outcome <- df_clean %>% 
+  group_by(type, outcome_type) %>% 
+  summarise(animal_count = n())
+
+ggplot(outcome, aes(x=type, y=animal_count, fill=outcome_type)) +
+  geom_bar(stat="identity", position = "fill") +
+  coord_flip() +
+  labs(y = "Percentage of Animals", 
+       x = "",
+       title = "Outcomes: Dogs & Cats") +
+  scale_fill_brewer(palette="Spectral")
+```
+
+Observation: Most of the dogs and cats are taken into the shelter as stray animals. Cats have a higher adoption rate than dogs, and most of the dogs are returned to the owners. It also appears that cats are more likely to be transferred to other shelters than dogs. 
+
+
+#### **Deep Dive into the Dog Category **
+##### **1. Subset the data to include only dogs**
+```{r}
+dogs <- filter(df_clean, type=="DOG")
+```
+
+##### **2. Intake Type by Outcomes**
+```{r echo=FALSE, fig.height=3, fig.width=6}
+outcome_dog <- dogs %>% 
+  group_by(intake_type, outcome_type) %>% 
+  summarise(animal_count = n())
+```
+```{r echo=FALSE, fig.height=3, fig.width=8}
+ggplot(outcome_dog, aes(x=intake_type, y=animal_count, fill=outcome_type)) +
+  geom_bar(stat="identity", position = "fill") +
+  coord_flip() +
+  labs(y = "Percentage of Animals", 
+       x = "",
+       title = "Intake Type by Outcomes: DOG") +
+  scale_fill_brewer(palette="Spectral")
+```
+
+Observation: Dogs from adoption return are most likely to be adopted again. Confiscated dogs are often returned to the owners. Very few dogs are returned to the owners if the owners decided to surrender the pets in the first place. 
+
+##### **3. Are healthy dogs more likely to be adopted?**
+To predict the outcomes of the animals, I want to explore the factors that affect people's decision. I'll start with the health condition of the animals.
+
+```{r echo=FALSE}
+dog_condition <- dogs %>% 
+  group_by(intake_condition, outcome_type) %>% 
+  summarise(animal_count = n())
+```
+```{r echo=FALSE, fig.height=4, fig.width=6}
+ggplot(dog_condition, aes(x = outcome_type, y = animal_count, fill = intake_condition)) +
+  geom_bar(stat="identity") +
+  labs(y = "Number of Animals", 
+       x = "",
+       title = "Outcomes by Intake Condition: DOG") +
+  scale_fill_brewer(palette="Paired") +
+  theme(axis.text.x = element_text(size = 7, angle = 90))
+```
+
+Observation: Majority of the dogs that are adopted or returned to owner came into the shelter with a good health condition. Dogs that came in as untreatable are mostly euthanized. However, there are still quite a few healthy/treatable dogs ended up being euthanized.  
+
+I am curious why the shelter decides to euthanize those healthy/treatable dogs and how many days do the dogs stay in the shelter before the shelter makes such decision? 
+
+```{r echo=FALSE, fig.height=4, fig.width=10}
+dogs %>%
+  filter(outcome_type=="EUTHANIZE") %>% 
+  ggplot(aes(x = factor(days_in_shelter), fill=intake_condition)) +
+  geom_bar() +
+  scale_fill_brewer(palette="Paired") +
+  theme(axis.text.x = element_text(size = 7, angle = 90)) +
+  labs(y = "Number of Animals", 
+       x = "Days in Shelter",
+       title = "Euthanized Dogs by Intake Condition")
+```
+
+```{r echo=FALSE, fig.height=4, fig.width=10}
+dogs %>%
+  filter(outcome_type=="EUTHANIZE" & (intake_condition=="HEALTHY" | intake_condition=="TREATABLE/MANAGEABLE")) %>% 
+  ggplot(aes(x = factor(days_in_shelter), fill=outcome_subtype)) +
+  geom_bar() +
+  scale_fill_brewer(palette="Paired") +
+  theme(axis.text.x = element_text(size = 7, angle = 90)) +
+  labs(y = "Number of Animals", 
+       x = "Days in Shelter",
+       title = "Euthanized: Intake Condition - Healthy/Manageable")
+```
+
+We can see that quite a few healthy/treatable dogs are euthanized between day 10 and day 30. The second chart illustrates the health condition at outcome for those dogs that came in as healthy/manageable, but ended being euthanized. It shows that there is an upsurge from day 10 to day 30 when the healthy dogs become aggressive, demonstrate severe behavior issue, or get severely ill. 
+
+At the same time, We also noticed that even though some of the animals came in as untreatable, it still takes around 30 days for them to be euthanized. 
+
+##### **4. Animal outcome vs. animal age**
+Next, let's find the relationship between animal age and their outcome.
+
+a) add a column "stage_at_outcome" to indicate whether a pet is a baby, adult, or senior. 
+```{r}
+dogs$stage_at_outcome[dogs$age_at_outcome < 1] <- "baby"
+dogs$stage_at_outcome[dogs$age_at_outcome >= 1 & dogs$age_at_outcome < 6] <- "adult"
+dogs$stage_at_outcome[dogs$age_at_outcome >= 6] <- "senior"
+```
+
+b) explore the relationship between dog stage and their outcome. 
+```{r echo=FALSE}
+prop.table(table(dogs$outcome_type, dogs$stage_at_outcome), 1)
+```
+Observation: More adults and puppies are adopted compared to senior dogs. Most of the dogs that died are seniors. Among the dogs that are euthanized, majority are adults.  
+
+Let's take a different angle by looking at the outcomes within each age group. 
+```{r echo=FALSE}
+prop.table(table(dogs$outcome_type, dogs$stage_at_outcome), 2)
+```
+
+Observation: Adult dogs are usually either adopted or returned to the owner. Puppies are mostly adopted and has the highest adoption rate among all age groups. Senior dogs are often returned to the owners and have a higher mortality rate compared to adults or puppies. 
+
+
+Since majority of the dogs in the shelter are either returned to the owners or adopted, I would like to see how the shelter does in terms of turnaround. I'll start with the dogs that reunited with their family.
+
+
+##### **5. How long does it take for the animals to be returned to their owners?**
+```{r echo=FALSE, fig.height=3, fig.width=6}
+dogs %>% 
+  filter(outcome_type=="RETURN TO OWNER") %>% 
+  ggplot(aes(factor(days_in_shelter))) +
+  geom_bar(fill="#3399CC")
+```
+
+Observation: Majority of the animals that are returned to the owner are returned within 1 week. The shelter is doing a good job.  
+
+Next, I would look at the adoption time. 
+
+##### **6. Among the animals that are adopted, what is the average adoption time**
+```{r echo=FALSE}
+dogs %>% 
+  filter(outcome_type=="ADOPTION") %>% 
+  summarise(avg_adoption_time = mean(days_in_shelter))
+```
+
+Seems like that it typically takes around a month for a dog to be adopted.
+
+```{r echo=FALSE, fig.height=3, fig.width=6}
+dogs %>% 
+  filter(outcome_type=="ADOPTION") %>% 
+  ggplot(aes(x = days_in_shelter)) +
+  geom_histogram(binwidth = 5, fill="#3399CC")
+```
+
+By plotting the data, we find that there are some outliers with around 800 adoption days. We can also conclude that most of the animals are adopted within 100 days, let's zoom in a bit by adding the condition days_in_shelter<=100 days.
+
+```{r echo=FALSE, fig.height=3, fig.width=6}
+dogs %>% 
+  filter(outcome_type=="ADOPTION" & days_in_shelter<=100) %>% 
+  ggplot(aes(x = days_in_shelter)) +
+  geom_histogram(binwidth = 1, fill="#3399CC")
+```
+
+Now we can see that actually most of the animals are adopted between 5 to 50 days. 
+Below is a statistical summary of the adoption time. 
+
+Mean
+```{r echo=FALSE}
+adoption <- dogs %>% 
+  filter(outcome_type=="ADOPTION")
+mean(adoption$days_in_shelter)
+```
+Standard Deviation
+```{r echo=FALSE}
+sd(adoption$days_in_shelter)
+```
+
+Mean and Confidence intervals
+```{r echo=FALSE, warning=FALSE}
+library(qwraps2)
+mean_ci(adoption$days_in_shelter)
+```
+
+Median and Inner Quartile Range
+```{r echo=FALSE, warning=FALSE}
+median_iqr(adoption$days_in_shelter)
+```
+
+##### **6. Adoption vs. Sex**
+Due to state spay and neuter law, all animals that are adopted are either spayed or neutered, but is there a difference in the adoption rate for male and female dogs? 
+
+```{r echo=FALSE, fig.height=3, fig.width=6}
+dogs %>% 
+  ggplot(aes(x = outcome_type, fill=sex_clean)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(size = 7, angle = 90), 
+        axis.title = element_blank())
+```
+
+Observation: There is an equal preference in male and female when it comes to adoption.
+
+##### **6. Adoption vs. Breed**
+The breed variable in the raw data contains 644 levels. To simplify the analysis, I created two columns, one to indicate whether the breed is a mix or not, and the other extracts only the first breed if the dog is a mix. 
+
+```{r echo=FALSE}
+dogs$is_mix <- ifelse(grepl("MIX", dogs$breed), 1, 0)
+dogs$breed <- as.character(dogs$breed)
+dogs$breed_clean <- sapply(strsplit(dogs$breed, split = "/"), '[[', 1)
+dogs$breed_clean <- as.factor(dogs$breed_clean)
+```
+```{r echo=FALSE, fig.height=3, fig.width=6}
+ggplot(dogs, aes(x = factor(is_mix), fill=outcome_type)) +
+  geom_bar(position="fill") +
+  scale_fill_brewer(palette="Paired")
+```
+
+By comparing whether the dog is mixed or purebred, we can see that there is no significant difference in terms of outcomes. 
+
+How about the most common type of dogs that are accepted? 
+
+```{r echo=FALSE, fig.height=3, fig.width=8}
+dogs %>% 
+  group_by(breed_clean) %>% 
+  mutate(Len = n()) %>% 
+  filter(Len >= 100) %>% 
+  ggplot(aes(x = breed_clean, fill=outcome_type)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(size=7, angle=90), 
+        axis.title = element_blank()) +
+  scale_fill_brewer(palette="Paired")
+```
+
+We can learn from the plot that Chihuahua SH is the most commonly adopted dog, followed by Pit Bull, German Shepherd, and Labrador Retriever. 
+
+```{r echo=FALSE, fig.height=3, fig.width=8}
+dogs %>% 
+  group_by(breed_clean) %>% 
+  mutate(Len = n()) %>% 
+  filter(Len >= 100) %>% 
+  ggplot(aes(x = breed_clean, fill=outcome_type)) +
+  geom_bar(position="fill") +
+  theme(axis.text.x = element_text(size=7, angle=90), 
+        axis.title = element_blank()) +
+  scale_fill_brewer(palette="Paired")
+```
+
+If we take a look at the proportion of each outcome type, we can see that of all the common dog types to appear in the shelter, Pit Bulls are the most likely to be euthanized, while they're only the eighth most likely to be adopted. 
+
+
+Based on the above analysis, we will use the following variables for prediction of outcome type. 
+
+* stage_at_outcome (age)
+* days in shelter
+* sex
+* breed
+* intake_condition
+
+Intended machine learning prediction model: 
+
+* Decision Trees
+* Random Forests
+
