@@ -340,7 +340,7 @@ Median and Inner Quartile Range
 median_iqr(adoption$days_in_shelter)
 ```
 
-##### **6. Adoption vs. Sex**
+##### **7. Adoption vs. Sex**
 Due to state spay and neuter law, all animals that are adopted are either spayed or neutered, but is there a difference in the adoption rate for male and female dogs? 
 
 ```{r echo=FALSE, fig.height=3, fig.width=6}
@@ -353,7 +353,7 @@ dogs %>%
 
 Observation: There is an equal preference in male and female when it comes to adoption.
 
-##### **6. Adoption vs. Breed**
+##### **8. Adoption vs. Breed**
 The breed variable in the raw data contains 644 levels. To simplify the analysis, I created two columns, one to indicate whether the breed is a mix or not, and the other extracts only the first breed if the dog is a mix. 
 
 ```{r echo=FALSE}
