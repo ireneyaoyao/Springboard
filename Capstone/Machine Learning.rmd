@@ -1,0 +1,186 @@
+---
+title: "Machine Learning & Prediction"
+author: "Irene Yao"
+date: "4/16/2018"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r message=FALSE, echo=FALSE}
+df<-read.csv("D:\\Irene\\Springboard Study Folder\\Capstone Project\\Datasets\\Animal_Shelter.csv", header=TRUE)
+```
+
+```{r message=FALSE, echo=FALSE}
+library(tidyr)
+library(dplyr)
+library(lubridate)
+```
+
+```{r message=FALSE, echo=FALSE}
+names(df) <- gsub(x = names(df), pattern = "\\.", replacement = "_") 
+names(df) <- tolower(names(df))
+```
+
+```{r message=FALSE, echo=FALSE}
+df <- filter(df, type=="DOG" | type=="CAT")
+```
+
+```{r message=FALSE, echo=FALSE}
+df$sex_clean <- ifelse(df$sex=="Spayed", "Female", "Male")
+```
+
+```{r message=FALSE, echo=FALSE}
+df$date_of_birth <- mdy(df$date_of_birth)
+df$intake_date <- mdy(df$intake_date)
+df$outcome_date <- mdy(df$outcome_date)
+```
+
+```{r message=FALSE, echo=FALSE}
+df$date_of_birth[df$date_of_birth > Sys.Date() & !is.na(df$date_of_birth)] <- NA
+```
+
+```{r message=FALSE, echo=FALSE}
+df$date_of_birth[df$date_of_birth>df$intake_date & !is.na(df$date_of_birth)] <- NA
+```
+
+```{r message=FALSE, echo=FALSE}
+df$size[df$type=="CAT" & (df$intake_date-df$date_of_birth < 365) & df$size=="" & !is.na(df$date_of_birth)] <- "KITTN"
+df$size[df$type=="DOG" & (df$intake_date-df$date_of_birth < 365) & df$size=="" & !is.na(df$date_of_birth)] <- "PUPPY"
+```
+
+```{r message=FALSE, echo=FALSE}
+toy <-c("CHIHUAHUA SH")
+small <- c("BEAGLE", "CHIHUAHUA SH/MIX", "DOMESTIC SH", "PUG")
+med <- c("BASSET HOUND/MIX", "BORDER COLLIE/MIX", "MCNAB")
+large <- c("AMERICAN STAFF/PIT BULL", "GERM SHEPHERD", "GOLDEN RETR", "LABRADOR RETR", "LABRADOR RETR/MIX", "MAREMMA SHEEPDG", "ROTTWEILER/MIX")
+
+df$size[df$breed %in% toy & df$size==""] <- "TOY"
+df$size[df$breed %in% small & df$size==""] <- "SMALL"
+df$size[df$breed %in% med & df$size==""] <- "MED"
+df$size[df$breed %in% large & df$size==""] <- "LARGE"
+```
+
+```{r message=FALSE, echo=FALSE}
+df$days_in_shelter[is.na(df$outcome_date)] <- NA
+```
+
+```{r message=FALSE, echo=FALSE}
+levels(df$outcome_type)[levels(df$outcome_type)==""] <- "UNKNOWN"
+levels(df$outcome_subtype)[levels(df$outcome_subtype)==""] <- "UNKNOWN"
+levels(df$outcome_condition)[levels(df$outcome_condition)==""] <-"UNKNOWN"
+```
+
+```{r message=FALSE, echo=FALSE}
+levels(df$outcome_jurisdiction)[levels(df$outcome_jurisdiction)==""] <- "UNKNOWN"
+df$outcome_zip_code[df$outcome_zip_code==""] <- NA
+df$location[df$location==""] <- NA
+```
+
+```{r message=FALSE, echo=FALSE}
+levels(df$name)[levels(df$name)==""] <- "Nameless"
+```
+
+```{r message=FALSE, echo=FALSE}
+df$age_at_outcome <- (df$outcome_date-df$date_of_birth)/365
+df$age_at_intake <- (df$intake_date-df$date_of_birth)/365
+```
+
+```{r message=FALSE, echo=FALSE}
+df_clean <- select(df, -count)
+```
+
+```{r echo=FALSE, eval=FALSE}
+write.csv(df_clean, "D:\\Irene\\Springboard Study Folder\\Capstone Project\\Datasets\\shelter_clean.csv", row.names = FALSE)
+```
+
+```{r echo=FALSE}
+dogs <- filter(df_clean, type=="DOG")
+```
+
+```{r echo=FALSE}
+dogs$stage_at_outcome[dogs$age_at_outcome < 1] <- "baby"
+dogs$stage_at_outcome[dogs$age_at_outcome >= 1 & dogs$age_at_outcome < 6] <- "adult"
+dogs$stage_at_outcome[dogs$age_at_outcome >= 6] <- "senior"
+```
+
+```{r echo=FALSE}
+dogs$is_mix <- ifelse(grepl("MIX", dogs$breed), 1, 0)
+dogs$breed <- as.character(dogs$breed)
+dogs$breed_clean <- sapply(strsplit(dogs$breed, split = "/"), '[[', 1)
+dogs$breed_clean <- as.factor(dogs$breed_clean)
+```
+
+
+Based on the [previous data analysis](https://github.com/ireneyaoyao/Springboard/blob/master/Capstone/Statistical%20Analysis.pdf), we will use the following variables for prediction of outcome type. 
+
+* size
+* intake_condition
+* outcome_condition
+* sex
+* age_at_intake
+* stage_at_outcome (age)
+* days in shelter
+* breed (is mix or not)
+
+#### **Machine Learning and Prediction**
+For this report's purpose, the prediction will be made around dogs, and the predicted value will be the outcome of each animal. 
+I will use GBM for the prediction and the outcome will be a binary classification. The outcomes for the animals will be either "placed in a home" or "not placed in a home". "Adoption" and "Return to owner" will regarded as "placed in a home", and all others will be categorized into "not place in a home". 
+To do so, I will add a column "placed" and the binary value for the column will be 1 or 0.
+
+```{r}
+dogs$placed <- ifelse((dogs$outcome_type == "ADOPTION" | dogs$outcome_type == "RETURN TO OWNER"), 1, 0)
+```
+
+Some of the columns have a class of "character" or "timediff". In order for the prediction model to work, update those columns to either "factors" or "numeric". 
+
+```{r}
+dogs$sex_clean <- as.factor(dogs$sex_clean)
+dogs$stage_at_outcome <- as.factor(dogs$stage_at_outcome)
+dogs$age_at_intake <- as.numeric(dogs$age_at_intake)
+dogs$age_at_outcome <- as.numeric(dogs$age_at_outcome)
+```
+
+
+##### **Prediction Using GBM**
+1. separate the dataframe into a training and a testing set. 80% of data will be in training set and the rest 20% will be in testing set. 
+
+```{r}
+n <- nrow(dogs)
+n_train <- round(n * 0.8)
+set.seed(123)
+train_indices <- sample(1:n, n_train)
+dog_train <- dogs[train_indices, ]
+dog_test <- dogs[-train_indices, ]
+```
+
+2. create the GBM model
+
+```{r warning=FALSE, message=FALSE}
+library(gbm)
+set.seed(1)
+dog_model_gbm <- gbm(formula = placed ~ size + intake_condition + outcome_condition + sex_clean + age_at_intake + stage_at_outcome + is_mix,
+                             distribution = "bernoulli",
+                             data = dog_train,
+                             n.trees = 10000)
+```
+
+3. predict the outcomes of the test set
+
+```{r}
+pred_gbm <- predict(object = dog_model_gbm, 
+                newdata = dog_test,
+                n.trees = 10000,
+                type = "response")
+```
+
+4. evaluate the model using test set AUC
+
+```{r warning=FALSE, message=FALSE}
+library(Metrics)
+auc <- auc(actual=dog_test$placed, predicted=pred_gbm)
+print(paste0("Test set AUC: ", auc))
+```
+
+
+
