@@ -511,7 +511,7 @@ After toggling among the different factors, I came to the conclusion that the fo
 
 ### **Machine Learning and Prediction**
 
-For this report's purpose, the prediction will be made around dogs, and the predicted value will be the outcome of each animal. I will use GBM for the prediction and the outcome will be a binary classification. The outcomes for the animals will be either "placed in a home" or "not placed in a home". "Adoption" and "Return to owner" will be regarded as "placed in a home", and all others will be categorized into "not place in a home". To do so, I will add a column "placed" and the binary value for the column will be 1 or 0.
+For this report's purpose, the prediction will be made around dogs, and the predicted value will be the outcome of each animal. I will use GBM for the prediction and the outcome will be a binary classification. The outcomes for the animals will be either "placed in a home" or "not placed in a home". "Adoption" and "Return to owner" will be regarded as "placed in a home", and all others will be categorized into "not placed in a home". To do so, I will add a column "placed" and the binary value for the column will be 1 or 0.
 
 ``` r
 dogs$placed <- ifelse((dogs$outcome_type == "ADOPTION" | dogs$outcome_type == "RETURN TO OWNER"), 1, 0)
