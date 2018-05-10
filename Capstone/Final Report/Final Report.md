@@ -550,7 +550,7 @@ dog_model_gbm <- gbm(formula = placed ~ size + intake_condition + outcome_condit
                              n.trees = 10000)
 ```
 
-1.  Predict the outcomes of the test set
+a.  Predict the outcomes of the test set
 
 ``` r
 pred_gbm <- predict(object = dog_model_gbm, 
@@ -559,7 +559,7 @@ pred_gbm <- predict(object = dog_model_gbm,
                 type = "response")
 ```
 
-1.  Evaluate the model using test set AUC
+b.  Evaluate the model using test set AUC
 
 ``` r
 library(Metrics)
