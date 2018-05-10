@@ -186,7 +186,12 @@ ggplot(outcome, aes(x=type, y=animal_count, fill=outcome_type)) +
        x = "",
        title = "Outcomes for Dogs") +
   scale_fill_brewer(palette="Set3") +
-  theme(legend.text = element_text(size=6))
+  theme(legend.text = element_text(size=6),
+        legend.title = element_text(size=8),
+        title = element_text(size=10),
+        axis.title.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        axis.text.x = element_text(size=8))
 ```
 
 ![](Capstone_Final_Report_files/figure-markdown_github/unnamed-chunk-20-1.png)
@@ -468,7 +473,8 @@ dogs %>%
   geom_bar() +
   theme(axis.text.x = element_text(size=7, angle=90), 
         axis.title = element_blank(),
-        legend.text = element_text(size=7)) +
+        legend.text = element_text(size=6),
+        legend.position = "bottom") +
   scale_fill_brewer(palette="Set3")
 ```
 
@@ -484,7 +490,9 @@ dogs %>%
   ggplot(aes(x = breed_clean, fill=outcome_type)) +
   geom_bar(position="fill") +
   theme(axis.text.x = element_text(size=7, angle=90), 
-        axis.title = element_blank()) +
+        axis.title = element_blank(),
+        legend.position = "bottom",
+        legend.text = element_text(size=6)) +
   scale_fill_brewer(palette="Set3")
 ```
 
@@ -561,4 +569,6 @@ print(paste0("Test set AUC: ", auc))
 
     ## [1] "Test set AUC: 0.876466407843653"
 
-### **Conclusion**
+### **Conclusion and Outlook**
+
+Our variables did a reasonable job in predicting the results with a test set AUC of around 0.88. We can fairly conclude that certain attributes of the dogs such as size, age, and breed are influential in people's decision on adoption. With these known factors, animal shelters can make a quick judgement at the time of the intake to identify the dogs that are at a higher risk of being ignored. It is worth considering to come up with certain solutions which could increase the adoption rate for those animals. With the current technology disruption, improvements are possible. We could increase the exposure for those overlooked dogs, have a better placement solution for the dogs that come in with health or behavior problem, and further enhance the adoption cycle. In our data clean up step, we noticed that some of the information are mistyped. This could due to the manual input of data. Would an automated process help increase the accuracy and decrease labor cost? There are a lot to think about explore for future work.
