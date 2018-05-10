@@ -8,7 +8,7 @@ According to ASPCA, approximately 6.5 million companion animals enter U.S. anima
 
 Sonoma County Animal Services is an animal rescue center in Santa Rosa, California. It dedicates to caring for homeless animals until they can be matched with perfect homes. It keeps a record of the [animal intake and outcome dataset](https://data.sonomacounty.ca.gov/Government/Animal-Shelter-Intake-and-Outcome/924a-vesw/data) from year 2013 to year 2018, which forms the basis for this study. A list of definition of the terms used in the dataset can be found [here](http://sonomacounty.ca.gov/Health/Animal-Services/Statistics-Definitions/).
 
-The dataset is well organized with a few shortcomings. There are missing values in the columns such as 'size', 'outcome type', 'outcome subtype', 'outcome condition', 'outcome jurisdiction', 'zip Code', and 'Location'. Some of the columns are mis-represented with wrong information or meaningless values. Date columns occasionally contain future dates. The following data wrangling steps are performed to address the aforementioned issues.
+The dataset is well organized with a few shortcomings. There are missing values in the columns such as 'size', 'outcome type', 'outcome subtype', 'outcome condition', 'outcome jurisdiction', 'zip code', and 'location'. Some of the columns are mis-represented with wrong information or meaningless values. Date columns occasionally contain future dates. The following data wrangling steps are performed to address the aforementioned issues.
 
 ### **Data Wrangling Steps**
 
@@ -63,14 +63,14 @@ df$date_of_birth[df$date_of_birth>df$intake_date & !is.na(df$date_of_birth)] <- 
 
 ##### **8. Fill up the missing values in size column**
 
-1.  make size equals Puppy or Kitten if animal is less than 1 year old upon arrival at the shelter
+a.  make size equals Puppy or Kitten if animal is less than 1 year old upon arrival at the shelter
 
 ``` r
 df$size[df$type=="CAT" & (df$intake_date-df$date_of_birth < 365) & df$size=="" & !is.na(df$date_of_birth)] <- "KITTN"
 df$size[df$type=="DOG" & (df$intake_date-df$date_of_birth < 365) & df$size=="" & !is.na(df$date_of_birth)] <- "PUPPY"
 ```
 
-1.  identify all the breed types where size column is NA
+b.  identify all the breed types where size column is NA
 
 ``` r
 df$breed[is.na(df$size)]
@@ -89,7 +89,7 @@ df$breed[is.na(df$size)]
     ## [21] "AMERICAN STAFF/PIT BULL" "LABRADOR RETR"          
     ## [23] "BASSET HOUND/MIX"
 
-1.  categorize the breed into different size classes and replace the missing values based on the breed
+c.  categorize the breed into different size classes and replace the missing values based on the breed
 
 ``` r
 toy <-c("CHIHUAHUA SH")
@@ -285,7 +285,7 @@ At the same time, We also noticed that even though some of the animals came in a
 
 Next, let's find the relationship between animal age and their outcome.
 
-1.  add a column "stage\_at\_outcome" to indicate whether a pet is a baby, adult, or senior.
+a.  add a column "stage\_at\_outcome" to indicate whether a pet is a baby, adult, or senior.
 
 ``` r
 dogs$stage_at_outcome[dogs$age_at_outcome < 1] <- "baby"
@@ -298,7 +298,7 @@ dogs$stage_at_outcome[dogs$age_at_outcome >= 1 & dogs$age_at_outcome < 6] <- "ad
 dogs$stage_at_outcome[dogs$age_at_outcome >= 6] <- "senior"
 ```
 
-1.  explore the relationship between dog stage and their outcome.
+b.  explore the relationship between dog stage and their outcome.
 
 ``` r
 prop.table(table(dogs$outcome_type, dogs$stage_at_outcome), 1)
@@ -442,7 +442,7 @@ It seems that there is an equal preference in male and female when it comes to a
 
 ##### **9. Adoption vs. Breed**
 
-I would imagine that breed is one of the factors that could have an effect on people's decission. The breed variable in the raw data contains 644 levels. To simplify the analysis, I created two columns, one to indicate whether the breed is a mix or not, and the other extracts only the first breed if the dog is a mix.
+I would imagine that breed is one of the factors that could have an effect on people's decision. The breed variable in the raw data contains 644 levels. To simplify the analysis, I created two columns, one to indicate whether the breed is a mix or not, and the other extracts only the first breed if the dog is a mix.
 
 ``` r
 dogs$is_mix <- ifelse(grepl("MIX", dogs$breed), 1, 0)
