@@ -8,7 +8,7 @@ According to ASPCA, approximately 6.5 million companion animals enter U.S. anima
 
 Sonoma County Animal Services is an animal rescue center in Santa Rosa, California. It dedicates to caring for homeless animals until they can be matched with perfect homes. It keeps a record of the [animal intake and outcome dataset](https://data.sonomacounty.ca.gov/Government/Animal-Shelter-Intake-and-Outcome/924a-vesw/data) from year 2013 to year 2018, which forms the basis for this study. A list of definition of the terms used in the dataset can be found [here](http://sonomacounty.ca.gov/Health/Animal-Services/Statistics-Definitions/).
 
-The dataset is well organized with a few shortcomings. There are missing values in the columns such as 'size', 'outcome type', 'outcome subtype', 'outcome condition', 'outcome jurisdiction', 'zip Code', and 'Location'. Some of the columns are mis-represented with wrong information or meaningless values. Date columns occasionally contain future dates. The following data wrangling steps are performed to address the aforementioned issues.
+The dataset is well organized with a few shortcomings. There are missing values in the columns such as 'size', 'outcome type', 'outcome subtype', 'outcome condition', 'outcome jurisdiction', 'zip code', and 'location'. Some of the columns are mis-represented with wrong information or meaningless values. Date columns occasionally contain future dates. The following data wrangling steps are performed to address the aforementioned issues.
 
 ### **Data Wrangling Steps**
 
@@ -63,14 +63,14 @@ df$date_of_birth[df$date_of_birth>df$intake_date & !is.na(df$date_of_birth)] <- 
 
 ##### **8. Fill up the missing values in size column**
 
-1.  make size equals Puppy or Kitten if animal is less than 1 year old upon arrival at the shelter
+a.  make size equals Puppy or Kitten if animal is less than 1 year old upon arrival at the shelter
 
 ``` r
 df$size[df$type=="CAT" & (df$intake_date-df$date_of_birth < 365) & df$size=="" & !is.na(df$date_of_birth)] <- "KITTN"
 df$size[df$type=="DOG" & (df$intake_date-df$date_of_birth < 365) & df$size=="" & !is.na(df$date_of_birth)] <- "PUPPY"
 ```
 
-1.  identify all the breed types where size column is NA
+b.  identify all the breed types where size column is NA
 
 ``` r
 df$breed[is.na(df$size)]
@@ -89,7 +89,7 @@ df$breed[is.na(df$size)]
     ## [21] "AMERICAN STAFF/PIT BULL" "LABRADOR RETR"          
     ## [23] "BASSET HOUND/MIX"
 
-1.  categorize the breed into different size classes and replace the missing values based on the breed
+c.  categorize the breed into different size classes and replace the missing values based on the breed
 
 ``` r
 toy <-c("CHIHUAHUA SH")
@@ -285,7 +285,7 @@ At the same time, We also noticed that even though some of the animals came in a
 
 Next, let's find the relationship between animal age and their outcome.
 
-1.  add a column "stage\_at\_outcome" to indicate whether a pet is a baby, adult, or senior.
+a.  add a column "stage\_at\_outcome" to indicate whether a pet is a baby, adult, or senior.
 
 ``` r
 dogs$stage_at_outcome[dogs$age_at_outcome < 1] <- "baby"
@@ -298,7 +298,7 @@ dogs$stage_at_outcome[dogs$age_at_outcome >= 1 & dogs$age_at_outcome < 6] <- "ad
 dogs$stage_at_outcome[dogs$age_at_outcome >= 6] <- "senior"
 ```
 
-1.  explore the relationship between dog stage and their outcome.
+b.  explore the relationship between dog stage and their outcome.
 
 ``` r
 prop.table(table(dogs$outcome_type, dogs$stage_at_outcome), 1)
@@ -442,7 +442,7 @@ It seems that there is an equal preference in male and female when it comes to a
 
 ##### **9. Adoption vs. Breed**
 
-I would imagine that breed is one of the factors that could have an effect on people's decission. The breed variable in the raw data contains 644 levels. To simplify the analysis, I created two columns, one to indicate whether the breed is a mix or not, and the other extracts only the first breed if the dog is a mix.
+I would imagine that breed is one of the factors that could have an effect on people's decision. The breed variable in the raw data contains 644 levels. To simplify the analysis, I created two columns, one to indicate whether the breed is a mix or not, and the other extracts only the first breed if the dog is a mix.
 
 ``` r
 dogs$is_mix <- ifelse(grepl("MIX", dogs$breed), 1, 0)
@@ -511,7 +511,7 @@ After toggling among the different factors, I came to the conclusion that the fo
 
 ### **Machine Learning and Prediction**
 
-For this report's purpose, the prediction will be made around dogs, and the predicted value will be the outcome of each animal. I will use GBM for the prediction and the outcome will be a binary classification. The outcomes for the animals will be either "placed in a home" or "not placed in a home". "Adoption" and "Return to owner" will regarded as "placed in a home", and all others will be categorized into "not place in a home". To do so, I will add a column "placed" and the binary value for the column will be 1 or 0.
+For this report's purpose, the prediction will be made around dogs, and the predicted value will be the outcome of each animal. I will use GBM for the prediction and the outcome will be a binary classification. The outcomes for the animals will be either "placed in a home" or "not placed in a home". "Adoption" and "Return to owner" will be regarded as "placed in a home", and all others will be categorized into "not placed in a home". To do so, I will add a column "placed" and the binary value for the column will be 1 or 0.
 
 ``` r
 dogs$placed <- ifelse((dogs$outcome_type == "ADOPTION" | dogs$outcome_type == "RETURN TO OWNER"), 1, 0)
@@ -550,7 +550,7 @@ dog_model_gbm <- gbm(formula = placed ~ size + intake_condition + outcome_condit
                              n.trees = 10000)
 ```
 
-1.  Predict the outcomes of the test set
+a.  Predict the outcomes of the test set
 
 ``` r
 pred_gbm <- predict(object = dog_model_gbm, 
@@ -559,7 +559,7 @@ pred_gbm <- predict(object = dog_model_gbm,
                 type = "response")
 ```
 
-1.  Evaluate the model using test set AUC
+b.  Evaluate the model using test set AUC
 
 ``` r
 library(Metrics)
@@ -571,4 +571,4 @@ print(paste0("Test set AUC: ", auc))
 
 ### **Conclusion and Outlook**
 
-Our variables did a reasonable job in predicting the results with a test set AUC of around 0.88. We can fairly conclude that certain attributes of the dogs such as size, age, and breed are influential in people's decision on adoption. With these known factors, animal shelters can make a quick judgement at the time of the intake to identify the dogs that are at a higher risk of being ignored. It is worth considering to come up with certain solutions which could increase the adoption rate for those animals. With the current technology disruption, improvements are possible. We could increase the exposure for those overlooked dogs, have a better placement solution for the dogs that come in with health or behavior problem, and further enhance the adoption cycle. In our data clean up step, we noticed that some of the information are mistyped. This could due to the manual input of data. Would an automated process help increase the accuracy and decrease labor cost? There are a lot to think about explore for future work.
+Our variables did a reasonable job in predicting the results with a test set AUC of around 0.88. We can fairly conclude that certain attributes of the dogs such as size, age, and breed are influential in people's decision on adoption. With these known factors, animal shelters can make a quick judgement at the time of the intake to identify the dogs that are at a higher risk of being ignored. It is worth considering to come up with certain solutions which could increase the adoption rate for those animals. With the current technology disruption, improvements are possible. We could increase the exposure for those overlooked dogs, have a better placement solution for the dogs that come in with health or behavior problem, and further enhance the adoption cycle. In our data clean up step, we noticed that some of the information are mistyped. This could due to the manual input of data. Would an automated process help increase the accuracy and decrease labor cost? There are a lot to think about and explore for future work.
