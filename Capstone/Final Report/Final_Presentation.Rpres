@@ -1,0 +1,219 @@
+Animal Shelter Presentation - Adopt Not Shop
+========================================================
+author: Irene Yao
+date: May 10, 2018
+width: 1440
+height: 900
+autosize: true
+font-import: http://fonts.googleapis.com/css?family=Roboto
+font-family: 'Roboto'
+
+<div align="left">
+<img src="4.jpg" width=400 height=400>
+</div>
+
+Animal Adoption Fact Sheet
+========================================================
+
+### **6.5 million: animals entering shelters every year**
+### **3-4 million: pets adopted from shelters every year**
+### **1.5 million: animals euthanized every year**
+### **20% - 30%: pet owners that choose to adopt**
+
+<div align="left">
+<img src="5.jpg" width=600 height=400>
+</div>
+
+Study Purpose
+========================================================
+* provide insights into the factors that affect the outcomes
+* help rescue centers to predict the probability of adoption
+* bring suggestions to better utilize resources
+* have more animals adopted!!
+
+# **Let the study begin**
+
+Data Source and Intuition
+========================================================
+* Data - [animal intake and outcome dataset](https://data.sonomacounty.ca.gov/Government/Animal-Shelter-Intake-and-Outcome/924a-vesw/data). Source: Sonoma County website
+* Definition of the variables - http://sonomacounty.ca.gov/Health/Animal-Services/Statistics-Definitions/
+
+What might affect people's decision in adoption?
+
+<div align="left">
+<img src="6.png" width=1000 height=380 style="background-color:transparent; border:0px; box-shadow:none;">
+</div>
+Let's see what happens in the dog world? 
+
+What's up with the dogs? - Outcome Types
+========================================================
+
+```{r echo=FALSE}
+library(dplyr)
+library(readr)
+library(ggplot2)
+df_clean <- read_csv("shelter_clean.csv")
+dogs <- filter(df_clean, type=="DOG")
+outcome <- dogs %>% 
+  group_by(type, outcome_type) %>% 
+  summarise(animal_count = n())
+```
+
+```{r echo=FALSE, fig.height=5, fig.width=10}
+ggplot(outcome, aes(x=type, y=animal_count, fill=outcome_type)) +
+  geom_bar(stat="identity", position = "fill") +
+  coord_flip() +
+  labs(y = "Percentage of Animals", 
+       x = "",
+       title = "Outcomes for Dogs") +
+  scale_fill_brewer(palette="Set3") +
+  theme(legend.text = element_text(size=10),
+        legend.title = element_text(size=10),
+        title = element_text(size=10),
+        axis.title.x = element_text(size=10),
+        axis.text.y = element_text(size=10),
+        axis.text.x = element_text(size=10))
+```
+
+Majority of the dogs are either returned to the owners or adopted!
+
+Is intake type associated with the outcome?
+========================================================
+
+```{r echo=FALSE}
+outcome_dog <- dogs %>% 
+  group_by(intake_type, outcome_type) %>% 
+  summarise(animal_count = n())
+```
+```{r echo=FALSE, fig.height=4, fig.width=10}
+ggplot(outcome_dog, aes(x=intake_type, y=animal_count, fill=outcome_type)) +
+  geom_bar(stat="identity", position = "fill") +
+  coord_flip() +
+  labs(y = "Percentage of Animals", 
+       x = "",
+       title = "Intake Type by Outcomes: DOG") +
+  scale_fill_brewer(palette="Set3") +
+  theme(legend.text = element_text(size=10))
+```
+
+* Dogs from adoption return are most likely to be adopted again
+* Confiscated dogs are often returned to the owners
+* Very few dogs are returned to the owners if the owners decided to surrender the pets in the first place. 
+
+Are healthy dogs more likely to be adopted?
+========================================================
+
+```{r echo=FALSE}
+dog_condition <- dogs %>% 
+  group_by(intake_condition, outcome_type) %>% 
+  summarise(animal_count = n())
+```
+```{r echo=FALSE, fig.height=5, fig.width=10}
+ggplot(dog_condition, aes(x = outcome_type, y = animal_count, fill = intake_condition)) +
+  geom_bar(stat="identity") +
+  labs(y = "Number of Animals", 
+       x = "",
+       title = "Outcomes by Intake Condition: DOG") +
+  scale_fill_brewer(palette="Paired") +
+  theme(axis.text.x = element_text(size = 7, angle = 90))
+```
+
+* Adopted dogs are ususally in good health
+* Dogs that came in as untreatable are mostly euthanized
+
+
+Are puppies more welcomed?
+========================================================
+```{r warning = FALSE, echo=FALSE}
+dogs$stage_at_outcome[dogs$age_at_outcome < 1] <- "baby"
+dogs$stage_at_outcome[dogs$age_at_outcome >= 1 & dogs$age_at_outcome < 6] <- "adult"
+dogs$stage_at_outcome[dogs$age_at_outcome >= 6] <- "senior"
+```
+
+```{r set-options, warning = FALSE, echo=FALSE}
+options(width = 60)
+prop.table(table(dogs$outcome_type, dogs$stage_at_outcome), 1)
+```
+
+* More adults and puppies are adopted compared to senior dogs
+* Most of the dogs that died are seniors
+* Among the dogs that are euthanized, majority are adults.  
+
+Male or Female? 
+========================================================
+Do people prefer male dogs or female dogs?
+
+```{r echo=FALSE, fig.height=5, fig.width=10}
+dogs %>% 
+  ggplot(aes(x = outcome_type, fill=sex_clean)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(size = 7, angle = 90), 
+        axis.title = element_blank(),
+        legend.text = element_text(size=7))
+```
+
+Both are loved the same amount. 
+
+What about different breeds?
+========================================================
+```{r echo=FALSE, fig.height=5, fig.width=10}
+dogs$breed <- as.character(dogs$breed)
+dogs$breed_clean <- sapply(strsplit(dogs$breed, split = "/"), '[[', 1)
+dogs$breed_clean <- as.factor(dogs$breed_clean)
+
+dogs %>% 
+  group_by(breed_clean) %>% 
+  mutate(Len = n()) %>% 
+  filter(Len >= 100) %>% 
+  ggplot(aes(x = breed_clean, fill=outcome_type)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(size=7, angle=90), 
+        axis.title = element_blank(),
+        legend.text = element_text(size=6),
+        legend.position = "bottom") +
+  scale_fill_brewer(palette="Set3")
+```
+
+* Chihuahua SH is the most commonly adopted dog, followed by Pit Bull, German Shepherd, and Labrador Retriever 
+* Pit Bulls are the most likely to be euthanized
+
+How's the shelter doing?
+========================================================
+The average adoption time is 33.85 days. 
+
+```{r echo = FALSE, fig.height=5, fig.width=10}
+dogs %>% 
+  filter(outcome_type=="ADOPTION" & days_in_shelter<=100) %>% 
+  ggplot(aes(x = days_in_shelter)) +
+  geom_histogram(binwidth = 1, fill="#3399CC")
+```
+
+***
+Most of the animals are adopted between 5 to 50 days. 
+* Standard deviation: 45.53 days
+* Median adoption time: 21 days
+* Inner quartile range: 13 - 37 days
+
+Machine Learning
+========================================================
+We will use GBM prediction model to predict the outcomes for the animals. The goal is to predict whether the dog will be adopted or not upon intake. 
+
+<div align="left">
+<img src="GBM.png" width=1000 height=400 style="background-color:transparent; border:0px; box-shadow:none;">
+</div>
+
+
+What we can do to help?
+========================================================
+
+
+* Use the prediction model to predict the outcome
+* Increase exposure of the overlooked dogs
+* Suggest better placement solutions
+* Explore automation opportunities in the center to increase efficiency
+
+***
+
+<div align="left">
+<img src="1.jpg" width=480 height=500 style="background-color:transparent; border:0px; box-shadow:none;">
+</div>
