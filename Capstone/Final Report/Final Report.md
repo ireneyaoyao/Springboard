@@ -63,14 +63,14 @@ df$date_of_birth[df$date_of_birth>df$intake_date & !is.na(df$date_of_birth)] <- 
 
 ##### **8. Fill up the missing values in size column**
 
-a.  make size equals Puppy or Kitten if animal is less than 1 year old upon arrival at the shelter
+make size equals Puppy or Kitten if animal is less than 1 year old upon arrival at the shelter
 
 ``` r
 df$size[df$type=="CAT" & (df$intake_date-df$date_of_birth < 365) & df$size=="" & !is.na(df$date_of_birth)] <- "KITTN"
 df$size[df$type=="DOG" & (df$intake_date-df$date_of_birth < 365) & df$size=="" & !is.na(df$date_of_birth)] <- "PUPPY"
 ```
 
-b.  identify all the breed types where size column is NA
+identify all the breed types where size column is NA
 
 ``` r
 df$breed[is.na(df$size)]
@@ -89,7 +89,7 @@ df$breed[is.na(df$size)]
     ## [21] "AMERICAN STAFF/PIT BULL" "LABRADOR RETR"          
     ## [23] "BASSET HOUND/MIX"
 
-c.  categorize the breed into different size classes and replace the missing values based on the breed
+categorize the breed into different size classes and replace the missing values based on the breed
 
 ``` r
 toy <-c("CHIHUAHUA SH")
@@ -157,6 +157,16 @@ Now we have the clean data. By roughly looking at the data, I'm interested to ex
 #### **Overview of the Animal Distribution**
 
 Before I start anything, I want to examine the number of cats and dogs in the shelter.
+
+``` r
+library(ggplot2)
+ggplot(df_clean, aes(type)) +
+  geom_bar(fill = "grey") + 
+  coord_flip() +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()
+        , axis.title.x=element_blank(), axis.title.y=element_blank()) +
+  geom_text(stat="count", aes(label=..count..), hjust=2)
+```
 
 ![](Capstone_Final_Report_files/figure-markdown_github/unnamed-chunk-18-1.png)
 
@@ -285,20 +295,15 @@ At the same time, We also noticed that even though some of the animals came in a
 
 Next, let's find the relationship between animal age and their outcome.
 
-a.  add a column "stage\_at\_outcome" to indicate whether a pet is a baby, adult, or senior.
+add a column "stage\_at\_outcome" to indicate whether a pet is a baby, adult, or senior.
 
 ``` r
 dogs$stage_at_outcome[dogs$age_at_outcome < 1] <- "baby"
-```
-
-    ## Warning: Unknown or uninitialised column: 'stage_at_outcome'.
-
-``` r
 dogs$stage_at_outcome[dogs$age_at_outcome >= 1 & dogs$age_at_outcome < 6] <- "adult"
 dogs$stage_at_outcome[dogs$age_at_outcome >= 6] <- "senior"
 ```
 
-b.  explore the relationship between dog stage and their outcome.
+explore the relationship between dog stage and their outcome.
 
 ``` r
 prop.table(table(dogs$outcome_type, dogs$stage_at_outcome), 1)
@@ -445,6 +450,7 @@ It seems that there is an equal preference in male and female when it comes to a
 I would imagine that breed is one of the factors that could have an effect on people's decision. The breed variable in the raw data contains 644 levels. To simplify the analysis, I created two columns, one to indicate whether the breed is a mix or not, and the other extracts only the first breed if the dog is a mix.
 
 ``` r
+library(RColorBrewer)
 dogs$is_mix <- ifelse(grepl("MIX", dogs$breed), 1, 0)
 dogs$breed <- as.character(dogs$breed)
 dogs$breed_clean <- sapply(strsplit(dogs$breed, split = "/"), '[[', 1)
@@ -454,8 +460,9 @@ dogs$breed_clean <- as.factor(dogs$breed_clean)
 ``` r
 ggplot(dogs, aes(x = factor(is_mix), fill=outcome_type)) +
   geom_bar(position="fill") +
-  scale_fill_brewer(palette="Set3") +
-  theme(legend.text = element_text(size=7))
+  scale_fill_brewer(palette="Set3", na.value="grey") +
+  theme(legend.text = element_text(size=7),
+  panel.background = element_rect(fill="white"))
 ```
 
 ![](Capstone_Final_Report_files/figure-markdown_github/unnamed-chunk-40-1.png)
@@ -474,8 +481,9 @@ dogs %>%
   theme(axis.text.x = element_text(size=7, angle=90), 
         axis.title = element_blank(),
         legend.text = element_text(size=6),
-        legend.position = "bottom") +
-  scale_fill_brewer(palette="Set3")
+        legend.position = "bottom",
+        panel.background = element_rect(fill="white")) +
+  scale_fill_brewer(palette="Set3", na.value="grey")
 ```
 
 ![](Capstone_Final_Report_files/figure-markdown_github/unnamed-chunk-41-1.png)
@@ -492,8 +500,9 @@ dogs %>%
   theme(axis.text.x = element_text(size=7, angle=90), 
         axis.title = element_blank(),
         legend.position = "bottom",
-        legend.text = element_text(size=6)) +
-  scale_fill_brewer(palette="Set3")
+        legend.text = element_text(size=6),
+        panel.background = element_rect(fill="white"))+
+  scale_fill_brewer(palette="Set3", na.value="grey")
 ```
 
 ![](Capstone_Final_Report_files/figure-markdown_github/unnamed-chunk-42-1.png)
@@ -511,7 +520,7 @@ After toggling among the different factors, I came to the conclusion that the fo
 
 ### **Machine Learning and Prediction**
 
-For this report's purpose, the prediction will be made around dogs, and the predicted value will be the outcome of each animal. I will use GBM for the prediction and the outcome will be a binary classification. The outcomes for the animals will be either "placed in a home" or "not placed in a home". "Adoption" and "Return to owner" will be regarded as "placed in a home", and all others will be categorized into "not placed in a home". To do so, I will add a column "placed" and the binary value for the column will be 1 or 0.
+For this report's purpose, the prediction will be made around dogs, and the predicted value will be the outcome of each animal. I will use Random Forest and GBM for the prediction and the outcome will be a binary classification. The outcomes for the animals will be either "placed in a home" or "not placed in a home". "Adoption" and "Return to owner" will be regarded as "placed in a home", and all others will be categorized into "not placed in a home". To do so, I will add a column "placed" and the binary value for the column will be 1 or 0.
 
 ``` r
 dogs$placed <- ifelse((dogs$outcome_type == "ADOPTION" | dogs$outcome_type == "RETURN TO OWNER"), 1, 0)
@@ -520,13 +529,15 @@ dogs$placed <- ifelse((dogs$outcome_type == "ADOPTION" | dogs$outcome_type == "R
 Some of the columns have a class of "character" or "timediff". In order for the prediction model to work, update those columns to either "factors" or "numeric". Some of the dogs are recently accepted into the rescue center and are still in the adoption process. We need to remove those entries since the outcome decision hasn't been made yet.
 
 ``` r
-cols <- c("size","intake_condition","outcome_condition", "sex_clean", "stage_at_outcome")
+cols <- c("size","intake_condition","outcome_condition", "sex_clean", "stage_at_outcome", "name", "type", "breed", "color", "sex", "intake_type", "intake_subtype", "outcome_type", "outcome_subtype", "intake_jurisdiction", "outcome_jurisdiction", "location", "breed_clean")
 dogs[cols] <- lapply(dogs[cols], factor)
 dogs$age_at_intake <- as.numeric(dogs$age_at_intake)
+dogs$age_at_outcome <- as.numeric(dogs$age_at_outcome)
 dogs <- dogs[!is.na(dogs$outcome_type),]
+dogs$placed <- as.numeric(dogs$placed)
 ```
 
-##### **Prediction Using GBM**
+##### **Prediction Using Random Forest**
 
 1.  Separate the dataframe into a training and a testing set. 80% of data will be in training set and the rest 20% will be in testing set.
 
@@ -539,6 +550,38 @@ dog_train <- dogs[train_indices, ]
 dog_test <- dogs[-train_indices, ]
 ```
 
+1.  Create the Random Forest model
+
+``` r
+library(randomForest)
+set.seed(111)
+dog_model_rf <- randomForest(formula = placed ~ size + intake_condition + outcome_condition + sex_clean + age_at_intake + stage_at_outcome + is_mix,
+                             data = dog_train,
+                             n.trees = 10000,
+                             na.action=na.exclude)
+```
+
+1.  Predict the outcomes of the test set
+
+``` r
+pred_rf <- predict(object = dog_model_rf, 
+                newdata = dog_test,
+                n.trees = 10000,
+                type = "response")
+```
+
+1.  Evaluate the model using test set AUC
+
+``` r
+library(Metrics)
+auc <- auc(actual=dog_test$placed, predicted=pred_rf)
+print(paste0("Random Forest Test set AUC: ", auc))
+```
+
+    ## [1] "Random Forest Test set AUC: 0.660023688885964"
+
+##### **Prediction Using GBM on the same training set**
+
 1.  Create the GBM model
 
 ``` r
@@ -550,7 +593,7 @@ dog_model_gbm <- gbm(formula = placed ~ size + intake_condition + outcome_condit
                              n.trees = 10000)
 ```
 
-a.  Predict the outcomes of the test set
+1.  Predict the outcomes of the test set
 
 ``` r
 pred_gbm <- predict(object = dog_model_gbm, 
@@ -559,16 +602,16 @@ pred_gbm <- predict(object = dog_model_gbm,
                 type = "response")
 ```
 
-b.  Evaluate the model using test set AUC
+1.  Evaluate the model using test set AUC
 
 ``` r
 library(Metrics)
 auc <- auc(actual=dog_test$placed, predicted=pred_gbm)
-print(paste0("Test set AUC: ", auc))
+print(paste0("GBM Test set AUC: ", auc))
 ```
 
-    ## [1] "Test set AUC: 0.876466407843653"
+    ## [1] "GBM Test set AUC: 0.876466407843653"
 
 ### **Conclusion and Outlook**
 
-Our variables did a reasonable job in predicting the results with a test set AUC of around 0.88. We can fairly conclude that certain attributes of the dogs such as size, age, and breed are influential in people's decision on adoption. With these known factors, animal shelters can make a quick judgement at the time of the intake to identify the dogs that are at a higher risk of being ignored. It is worth considering to come up with certain solutions which could increase the adoption rate for those animals. With the current technology disruption, improvements are possible. We could increase the exposure for those overlooked dogs, have a better placement solution for the dogs that come in with health or behavior problem, and further enhance the adoption cycle. In our data clean up step, we noticed that some of the information are mistyped. This could due to the manual input of data. Would an automated process help increase the accuracy and decrease labor cost? There are a lot to think about and explore for future work.
+After performing both machine learning methods, GBM did a better job in predicting the results with a test set AUC of around 0.88. We can fairly conclude that certain attributes of the dogs such as size, age, and breed are influential in people's decision on adoption. With these known factors, animal shelters can make a quick judgement at the time of the intake to identify the dogs that are at a higher risk of being ignored. It is worth considering to come up with certain solutions which could increase the adoption rate for those animals. With the current technology disruption, improvements are possible. We could increase the exposure for those overlooked dogs, have a better placement solution for the dogs that come in with health or behavior problem, and further enhance the adoption cycle. In our data clean up step, we noticed that some of the information are mistyped. This could due to the manual input of data. Would an automated process help increase the accuracy and decrease labor cost? There are a lot to think about and explore for future work.
