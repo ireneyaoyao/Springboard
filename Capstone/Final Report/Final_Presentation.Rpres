@@ -2,6 +2,8 @@ Animal Shelter Presentation - Adopt Not Shop
 ========================================================
 author: Irene Yao
 date: May 10, 2018
+width: 1440
+height: 900
 autosize: true
 font-import: http://fonts.googleapis.com/css?family=Roboto
 font-family: 'Roboto'
@@ -13,10 +15,10 @@ font-family: 'Roboto'
 Animal Adoption Fact Sheet
 ========================================================
 
-### **6.5 million: number of animals entering shelters every year**
-### **3-4 million: number of pets adopted from shelters every year**
-### **1.5 million: number of animals euthanized every year**
-### **20% - 30%: number of pet owners that choose to adopt**
+### **6.5 million: animals entering shelters every year**
+### **3-4 million: pets adopted from shelters every year**
+### **1.5 million: animals euthanized every year**
+### **20% - 30%: pet owners that choose to adopt**
 
 <div align="left">
 <img src="5.jpg" width=600 height=400>
@@ -39,7 +41,7 @@ Data Source and Intuition
 What might affect people's decision in adoption?
 
 <div align="left">
-<img src="6.png" width=1000 height=380>
+<img src="6.png" width=1000 height=380 style="background-color:transparent; border:0px; box-shadow:none;">
 </div>
 Let's see what happens in the dog world? 
 
@@ -83,7 +85,7 @@ outcome_dog <- dogs %>%
   group_by(intake_type, outcome_type) %>% 
   summarise(animal_count = n())
 ```
-```{r echo=FALSE, fig.height=5, fig.width=10}
+```{r echo=FALSE, fig.height=4, fig.width=10}
 ggplot(outcome_dog, aes(x=intake_type, y=animal_count, fill=outcome_type)) +
   geom_bar(stat="identity", position = "fill") +
   coord_flip() +
@@ -119,26 +121,6 @@ ggplot(dog_condition, aes(x = outcome_type, y = animal_count, fill = intake_cond
 * Adopted dogs are ususally in good health
 * Dogs that came in as untreatable are mostly euthanized
 
-Are healthy dogs more likely to be adopted?
-========================================================
-
-```{r echo=FALSE}
-dog_condition <- dogs %>% 
-  group_by(intake_condition, outcome_type) %>% 
-  summarise(animal_count = n())
-```
-```{r echo=FALSE, fig.height=5, fig.width=10}
-ggplot(dog_condition, aes(x = outcome_type, y = animal_count, fill = intake_condition)) +
-  geom_bar(stat="identity") +
-  labs(y = "Number of Animals", 
-       x = "",
-       title = "Outcomes by Intake Condition: DOG") +
-  scale_fill_brewer(palette="Paired") +
-  theme(axis.text.x = element_text(size = 7, angle = 90))
-```
-
-* Adopted dogs are ususally in good health
-* Dogs that came in as untreatable are mostly euthanized
 
 Are puppies more welcomed?
 ========================================================
@@ -148,7 +130,8 @@ dogs$stage_at_outcome[dogs$age_at_outcome >= 1 & dogs$age_at_outcome < 6] <- "ad
 dogs$stage_at_outcome[dogs$age_at_outcome >= 6] <- "senior"
 ```
 
-```{r warning = FALSE, echo=FALSE}
+```{r set-options, warning = FALSE, echo=FALSE}
+options(width = 60)
 prop.table(table(dogs$outcome_type, dogs$stage_at_outcome), 1)
 ```
 
@@ -156,21 +139,43 @@ prop.table(table(dogs$outcome_type, dogs$stage_at_outcome), 1)
 * Most of the dogs that died are seniors
 * Among the dogs that are euthanized, majority are adults.  
 
-Are puppies more welcomed?
+Male or Female? 
 ========================================================
-```{r warning = FALSE, echo=FALSE}
-dogs$stage_at_outcome[dogs$age_at_outcome < 1] <- "baby"
-dogs$stage_at_outcome[dogs$age_at_outcome >= 1 & dogs$age_at_outcome < 6] <- "adult"
-dogs$stage_at_outcome[dogs$age_at_outcome >= 6] <- "senior"
+Do people prefer male dogs or female dogs?
+
+```{r echo=FALSE, fig.height=5, fig.width=10}
+dogs %>% 
+  ggplot(aes(x = outcome_type, fill=sex_clean)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(size = 7, angle = 90), 
+        axis.title = element_blank(),
+        legend.text = element_text(size=7))
 ```
 
-```{r warning = FALSE, echo=FALSE}
-prop.table(table(dogs$outcome_type, dogs$stage_at_outcome), 1)
+Both are loved the same amount. 
+
+What about different breeds?
+========================================================
+```{r echo=FALSE, fig.height=5, fig.width=10}
+dogs$breed <- as.character(dogs$breed)
+dogs$breed_clean <- sapply(strsplit(dogs$breed, split = "/"), '[[', 1)
+dogs$breed_clean <- as.factor(dogs$breed_clean)
+
+dogs %>% 
+  group_by(breed_clean) %>% 
+  mutate(Len = n()) %>% 
+  filter(Len >= 100) %>% 
+  ggplot(aes(x = breed_clean, fill=outcome_type)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(size=7, angle=90), 
+        axis.title = element_blank(),
+        legend.text = element_text(size=6),
+        legend.position = "bottom") +
+  scale_fill_brewer(palette="Set3")
 ```
 
-* More adults and puppies are adopted compared to senior dogs
-* Most of the dogs that died are seniors
-* Among the dogs that are euthanized, majority are adults. 
+* Chihuahua SH is the most commonly adopted dog, followed by Pit Bull, German Shepherd, and Labrador Retriever 
+* Pit Bulls are the most likely to be euthanized
 
 How's the shelter doing?
 ========================================================
@@ -183,7 +188,32 @@ dogs %>%
   geom_histogram(binwidth = 1, fill="#3399CC")
 ```
 
+***
 Most of the animals are adopted between 5 to 50 days. 
 * Standard deviation: 45.53 days
 * Median adoption time: 21 days
 * Inner quartile range: 13 - 37 days
+
+Machine Learning
+========================================================
+We will use GBM prediction model to predict the outcomes for the animals. The goal is to predict whether the dog will be adopted or not upon intake. 
+
+<div align="left">
+<img src="GBM.png" width=1000 height=400 style="background-color:transparent; border:0px; box-shadow:none;">
+</div>
+
+
+What we can do to help?
+========================================================
+
+
+* Use the prediction model to predict the outcome
+* Increase exposure of the overlooked dogs
+* Suggest better placement solutions
+* Explore automation opportunities in the center to increase efficiency
+
+***
+
+<div align="left">
+<img src="1.jpg" width=480 height=500 style="background-color:transparent; border:0px; box-shadow:none;">
+</div>
